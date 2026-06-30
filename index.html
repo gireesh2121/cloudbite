@@ -56,7 +56,31 @@
         .card-body .stars{font-size:10px;color:#FFB300;margin-bottom:4px}
         .card-body .desc{color:var(--g6);font-size:10px;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
         .card-foot{display:flex;justify-content:space-between;align-items:center}
-        .price{font-size:16px;font-weight:800}.price .mrp{text-decoration:line-through;color:#ccc;font-size:11px;margin-left:3px;font-weight:400}
+        .card-price {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.current-price {
+    font-size: 18px;
+    font-weight: 800;
+    color: #212529;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.discount-badge {
+    font-size: 10px;
+    color: #60B246;
+    font-weight: 700;
+    margin-left: 4px;
+}
         .btn-add{background:white;color:var(--p);border:2px solid var(--p);padding:6px 16px;border-radius:16px;cursor:pointer;font-weight:700;font-size:11px;transition:var(--t);text-transform:uppercase;font-family:'Poppins',sans-serif}
         .btn-add:hover{background:var(--p);color:white}
         .qty-ctrl{display:flex;align-items:center;gap:6px;background:var(--p);padding:3px 8px;border-radius:16px}
@@ -131,7 +155,7 @@
             <div class="hero-badge"><h4>4.8</h4><span>Rating</span></div>
             <div class="hero-badge"><h4>30min</h4><span>Delivery</span></div>
             <div class="hero-badge"><h4>50+</h4><span>Dishes</span></div>
-            <div class="hero-badge"><h4>Free</h4><span>Above ₹299</span></div>
+            <div class="hero-badge"><h4>Free</h4><span>Above ₹499</span></div>
         </div>
     </section>
 
@@ -200,7 +224,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script>
         // ============ CONFIG ============
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxibM-MOgEDqGP7MKIVFE8AaYuWL4NNbQG8H6WwNlP4fwZzMuB2YUyrlwzltUfOpyMCPA/exec"; // Replace with your deployed URL
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxyoMK75jnydGNRBGGABR8nPt0HUHNL5GzoqP2o9PTilLssnCe0J7gAKrbhEaiieQhrzw/exec"; // Replace with your deployed URL
         const OWNER = { email: "gireeshgd21@gmail.com", whatsapp: "919353280448", upi: "gireeshgd21@okhdfcbank" };
         emailjs.init("DoGWkEfUjp01KFsxv");
         
@@ -233,13 +257,45 @@
             renderMenu();
         }
 
-        function renderMenu() {
-            const items = currentCat === 'all' ? menu : menu.filter(i => i.cat === currentCat);
-            document.getElementById('menuGrid').innerHTML = items.map(i => {
-                const ci = cart.find(c => c.id === i.id);
-                return `<div class="card"><div class="card-img"><img src="${i.img}" alt="${i.name}" onerror="this.src='https://via.placeholder.com/400x300/EEE/999?text=${i.name}'">${i.popular?'<div class="ribbon">BEST</div>':''}<span class="veg-dot ${i.type==='veg'?'v':'n'}"></span></div><div class="card-body"><h3>${i.name}</h3><div class="stars">⭐ ${i.rating} (${i.reviews})</div><p class="desc">${i.desc}</p><div class="card-foot"><div><span class="price">₹${i.price}</span>${i.oprice>i.price?`<span class="mrp">₹${i.oprice}</span>`:''}</div>${ci?`<div class="qty-ctrl"><button class="qty-btn" onclick="uq(${i.id},${ci.quantity-1})">−</button><span class="qty-count">${ci.quantity}</span><button class="qty-btn" onclick="uq(${i.id},${ci.quantity+1})">+</button></div>`:`<button class="btn-add" onclick="ac(${i.id})">ADD +</button>`}</div></div></div>`;
-            }).join('');
-        }
+       function renderMenu() {
+    const items = currentCat === 'all' ? menu : menu.filter(i => i.cat === currentCat);
+    
+    document.getElementById('menuGrid').innerHTML = items.map(i => {
+        const ci = cart.find(c => c.id === i.id);
+        const hasDiscount = i.oprice && i.oprice > i.price;
+        const discountPercent = hasDiscount ? Math.round(((i.oprice - i.price) / i.oprice) * 100) : 0;
+        
+        return `
+        <div class="card">
+            <div class="card-img">
+                <img src="${i.img}" alt="${i.name}" onerror="this.src='https://via.placeholder.com/400x300/EEE/999?text=${encodeURIComponent(i.name)}'">
+                ${i.popular ? '<div class="ribbon">BEST</div>' : ''}
+                ${hasDiscount ? `<div class="ribbon" style="top:${i.popular ? '35px' : '10px'};background:linear-gradient(135deg,#60B246,#2E7D32);">${discountPercent}% OFF</div>` : ''}
+                <span class="veg-dot ${i.type === 'veg' ? 'v' : 'n'}"></span>
+            </div>
+            <div class="card-body">
+                <h3>${i.name}</h3>
+                <div class="stars">⭐ ${i.rating || 4.5} (${i.reviews || 0})</div>
+                <p class="desc">${i.desc || ''}</p>
+                <div class="card-foot">
+                    <div class="card-price">
+                        <span class="current-price">₹${i.price}</span>
+                        ${hasDiscount ? `<span class="original-price">₹${i.oprice}</span>` : ''}
+                    </div>
+                    ${ci ? `
+                        <div class="qty-ctrl">
+                            <button class="qty-btn" onclick="uq(${i.id},${ci.quantity-1})">−</button>
+                            <span class="qty-count">${ci.quantity}</span>
+                            <button class="qty-btn" onclick="uq(${i.id},${ci.quantity+1})">+</button>
+                        </div>
+                    ` : `
+                        <button class="btn-add" onclick="ac(${i.id})">ADD +</button>
+                    `}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
 
         function filterCat(c) { currentCat = c; document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active')); event.target.classList.add('active'); renderMenu(); }
 
